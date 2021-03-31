@@ -21,6 +21,7 @@ public class DataCache {
     private Person user;
 
     private final ArrayList<Person> allPeople = new ArrayList<>();
+    private final ArrayList<Event> allEvents = new ArrayList<>();
 
     private final Set<Person> immediateFamilyMales = new HashSet<>();
     private final Set<Person> immediateFamilyFemales = new HashSet<>();
@@ -66,6 +67,22 @@ public class DataCache {
             }
         }
         return null;
+    }
+
+    public ArrayList<Event> insertEvents(JSONArray events) {
+        Gson g = new Gson();
+        Log.d("RETRIEVAL", "inserting into cache");
+        try {
+            for (int i = 0; i < events.length(); i++) {
+                Log.d("RETRIEVAL", "loop");
+                Event event = g.fromJson(events.getString(i), Event.class);
+                allEvents.add(event);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return allEvents;
     }
 
 

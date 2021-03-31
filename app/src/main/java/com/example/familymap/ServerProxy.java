@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import Models.Person;
 import Models.User;
+import Results.EventResult;
 import Results.LoginResult;
 import Results.PersonResult;
 import Results.RegisterResult;
@@ -165,8 +166,8 @@ public class ServerProxy {
 
     }
 
-    public static PersonResult retrieveData(String serverHost, String serverPort, String authToken) {
-        PersonResult result;
+    public static boolean retrieveData(String serverHost, String serverPort, String authToken) {
+        PersonResult personResult;
         try {
             URL url = new URL("http://" + serverHost + ":" + serverPort + "/person");
             HttpURLConnection http = (HttpURLConnection)url.openConnection();
@@ -202,26 +203,79 @@ public class ServerProxy {
                 String message = json.optString("message"); //optstring so it doesn't throw an exception
                 Log.d("RETRIEVAL", "before if in server");
                 if (!message.equals("")) {
-                    result = new PersonResult("Failed to retrieve persons");
-                    return result;
+                    return false;
                 }
                 else {
                     Log.d("RETRIEVAL", "about to insert into cache");
                     DataCache cache = DataCache.getInstance();
-                    result = new PersonResult(cache.insertPeople(jsonArray));
-                    return result;
+                    personResult = new PersonResult(cache.insertPeople(jsonArray));
+                    if (personResult.isSuccessful())  return true;
+                    else return false;
                 }
             }
             else {
-                result = new PersonResult("Failed to retrieve persons");
-                return result;
+                return false;
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-        result = new PersonResult("Failed to retrieve persons");
-        return result;
+
+        //events
+        EventResult eventResult;
+        try {
+            URL url = new URL("http://" + serverHost + ":" + serverPort + "/event");
+            HttpURLConnection http = (HttpURLConnection)url.openConnection();
+            http.setRequestProperty("Authorization", authToken);
+            http.setRequestMethod("GET");
+            http.setDoInput(true);
+            Log.d("RETRIEVAL", "about to connect");
+            Log.d("RETRIEVAL", url.toString());
+
+            http.connect();
+            Log.d("RETRIEVAL", "connected");
+            Log.d("RETRIEVAL", http.getRequestMethod());
+            Log.d("RETRIEVAL", String.valueOf(http.getResponseCode()));
+
+            if (http.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                Log.d("RETRIEVAL", "ok");
+                InputStream resBody = http.getInputStream();
+
+                //from lecture
+                //need to do this because the JSONObject won't accept resBody as a parameter
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int length = 0;
+                while ((length = resBody.read(buffer)) != -1) {
+                    bytes.write(buffer, 0, length);
+                }
+
+                String resBodyData = bytes.toString();
+
+                JSONObject json = new JSONObject(resBodyData);
+                JSONArray jsonArray = json.getJSONArray("data");
+                Gson g = new Gson();
+                String message = json.optString("message"); //optstring so it doesn't throw an exception
+                Log.d("RETRIEVAL", "before if in server");
+                if (!message.equals("")) {
+                    return false;
+                }
+                else {
+                    Log.d("RETRIEVAL", "about to insert into cache");
+                    DataCache cache = DataCache.getInstance();
+                    eventResult = new EventResult(cache.insertEvents(jsonArray));
+                    if (eventResult.isSuccessful())  return true;
+                    else return false;
+                }
+            }
+            else {
+                return false;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private static String readString(InputStream is) throws IOException {

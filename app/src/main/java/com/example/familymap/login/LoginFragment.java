@@ -21,8 +21,11 @@ import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.example.familymap.DataCache;
+import com.example.familymap.MainActivity;
+import com.example.familymap.MapsFragment;
 import com.example.familymap.R;
 import com.example.familymap.ServerProxy;
+import com.google.android.gms.maps.MapFragment;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
@@ -61,8 +64,6 @@ public class LoginFragment extends Fragment {
     private Button signInButton;
     private Button registerButton;
     private String gender;
-    private boolean success;
-    private String authToken;
     private String personID;
 
 
@@ -160,14 +161,12 @@ public class LoginFragment extends Fragment {
                         Bundle bundle = message.getData();
                         if (!bundle.getString(MESSAGE_KEY, "").equals("")) {
                             Toast.makeText(getContext(), "Login Failed", Toast.LENGTH_SHORT).show();
-                            success = false;
                         }
                         else {
-                            success = true;
-                            Toast.makeText(getContext(), "Login Successful", Toast.LENGTH_SHORT).show();
+                            switchFragments();
                         }
                         personID = bundle.getString(PERSONID_KEY, "");
-                        authToken = bundle.getString(AUTHTOKEN_KEY, "");
+
                     }
                 };
 
@@ -196,15 +195,13 @@ public class LoginFragment extends Fragment {
                             Bundle bundle = message.getData();
                             if (!bundle.getString(MESSAGE_KEY, "").equals("")) {
                                 Toast.makeText(getContext(), "Register Failed", Toast.LENGTH_SHORT).show();
-                                success = false;
                             }
                             else {
-                                success = true;
-                                Toast.makeText(getContext(), "Register Successful", Toast.LENGTH_SHORT).show();
+                                switchFragments();
                             }
                             personID = bundle.getString(PERSONID_KEY, "");
-                            authToken = bundle.getString(AUTHTOKEN_KEY, "");
                             String user = bundle.getString(USERNAME_KEY, "");
+
                         }
                     };
                     RegisterTask task = new RegisterTask(registerHandler, serverHost, serverPort, userName, password, firstName, lastName, email, gender);
@@ -289,6 +286,11 @@ public class LoginFragment extends Fragment {
         return true;
     }
 
+    private void switchFragments() {
+        MapsFragment mapFragment = new MapsFragment();
+        this.getFragmentManager().beginTransaction().replace(R.id.fragment_container, mapFragment, null)
+                .addToBackStack(null).commit();
+    }
 
     private class DataRetrievalTask implements Runnable {
 
@@ -307,19 +309,18 @@ public class LoginFragment extends Fragment {
 
         @Override
         public void run() {
-            PersonResult personResult = ServerProxy.retrieveData(serverHost, serverPort, authToken);
-            DataCache cache = DataCache.getInstance();
-            sendMessage(personResult);
+            boolean result = ServerProxy.retrieveData(serverHost, serverPort, authToken);
+            sendMessage(result);
         }
 
-        private void sendMessage(PersonResult result) {
+        private void sendMessage(boolean result) {
             Message message = Message.obtain();
             Bundle messageBundle = new Bundle();
-            if (result.isSuccessful()) {
+            if (result) {
 
             }
             else {
-                messageBundle.putString(MESSAGE_KEY, result.getMessage());
+                messageBundle.putString(MESSAGE_KEY, "Error: Failed to retrieve data");
             }
             message.setData(messageBundle);
 
@@ -333,11 +334,8 @@ public class LoginFragment extends Fragment {
             Bundle bundle = message.getData();
             if (!bundle.getString(MESSAGE_KEY, "").equals("")) {
                 Toast.makeText(getContext(), "Data Retrieval Failed", Toast.LENGTH_SHORT).show();
-                success = false;
             }
             else {
-                success = true;
-
                 DataCache cache = DataCache.getInstance();
                 Person p = cache.findPerson(personID);
                 String out = p.getFirstName() + " " + p.getLastName();
