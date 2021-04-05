@@ -1,17 +1,13 @@
 package com.example.familymap.login;
 
-import android.content.Context;
-import android.content.PeriodicSync;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
 import android.os.Message;
-import android.provider.ContactsContract;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,19 +17,15 @@ import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.example.familymap.DataCache;
-import com.example.familymap.MainActivity;
 import com.example.familymap.MapsFragment;
 import com.example.familymap.R;
 import com.example.familymap.ServerProxy;
-import com.google.android.gms.maps.MapFragment;
 
-import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import Models.Person;
 import Results.LoginResult;
-import Results.PersonResult;
 import Results.RegisterResult;
 
 
@@ -309,7 +301,9 @@ public class LoginFragment extends Fragment {
 
         @Override
         public void run() {
-            boolean result = ServerProxy.retrieveData(serverHost, serverPort, authToken);
+            boolean result = ServerProxy.retrievePersons(serverHost, serverPort, authToken, personID);
+            if (!result) sendMessage(result);
+            result = ServerProxy.retrieveEvents(serverHost, serverPort, authToken, personID);
             sendMessage(result);
         }
 
@@ -333,7 +327,7 @@ public class LoginFragment extends Fragment {
         public void handleMessage(Message message) {
             Bundle bundle = message.getData();
             if (!bundle.getString(MESSAGE_KEY, "").equals("")) {
-                Toast.makeText(getContext(), "Data Retrieval Failed", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Data Retrieval Failed: " + bundle.getString(MESSAGE_KEY, ""), Toast.LENGTH_SHORT).show();
             }
             else {
                 DataCache cache = DataCache.getInstance();
@@ -375,6 +369,7 @@ public class LoginFragment extends Fragment {
             if (result.isSuccessful()) {
                 messageBundle.putString(AUTHTOKEN_KEY, result.getAuthtoken());
                 messageBundle.putString(PERSONID_KEY, result.getPersonID());
+                personID = result.getPersonID();
 
 
                 DataRetrievalTask dataTask = new DataRetrievalTask(dataHandler, serverHost, serverPort, result.getAuthtoken());
@@ -434,6 +429,7 @@ public class LoginFragment extends Fragment {
                 messageBundle.putString(AUTHTOKEN_KEY, result.getAuthtoken());
                 messageBundle.putString(USERNAME_KEY, result.getUsername());
                 messageBundle.putString(PERSONID_KEY, result.getPersonID());
+                personID = result.getPersonID();
 
                 DataRetrievalTask dataTask = new DataRetrievalTask(dataHandler, serverHost, serverPort, result.getAuthtoken());
                 ExecutorService executor = Executors.newSingleThreadExecutor();

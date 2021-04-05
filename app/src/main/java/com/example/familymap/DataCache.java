@@ -20,8 +20,8 @@ public class DataCache {
 
     private Person user;
 
-    private final ArrayList<Person> allPeople = new ArrayList<>();
-    private final ArrayList<Event> allEvents = new ArrayList<>();
+    private final Map<String, Person> allPeople = new HashMap<>();
+    private final Map<String, Event> allEvents = new HashMap<>();
 
     private final Set<Person> immediateFamilyMales = new HashSet<>();
     private final Set<Person> immediateFamilyFemales = new HashSet<>();
@@ -43,25 +43,58 @@ public class DataCache {
     }
 
     //for login assignment (easier)
-    public ArrayList<Person> insertPeople(JSONArray persons) {
+    public boolean insertPeople(JSONArray persons, String personID) {
         Gson g = new Gson();
-        Log.d("RETRIEVAL", "inserting into cache");
         try {
             for (int i = 0; i < persons.length(); i++) {
-                Log.d("RETRIEVAL", "loop");
                 Person person = g.fromJson(persons.getString(i), Person.class);
-                allPeople.add(person);
+                allPeople.put(person.getPersonID(), person);
             }
+            setPaternalSides(personID);
         } catch (JSONException e) {
             e.printStackTrace();
+            return false;
         }
 
-        return allPeople;
+        return true;
+    }
+
+    private void setPaternalSides(String personID) {
+        Person current = findPerson(personID);
+        Person father = findPerson(current.getFatherID());
+        Person mother = findPerson(current.getMotherID());
+        if (father != null) {
+            fatherSideMales.add(father);
+            motherSideFemales.add(mother);
+            Person temp = findPerson(father.getFatherID());
+            while (temp != null) {
+                fatherSideMales.add(temp);
+                temp = findPerson(temp.getFatherID());
+            }
+            temp = findPerson(father.getMotherID());
+            while (temp != null) {
+                fatherSideFemales.add(temp);
+                temp = findPerson(temp.getMotherID());
+            }
+
+            //mothers side
+            temp = findPerson(mother.getFatherID());
+            while (temp != null) {
+                motherSideMales.add(temp);
+                temp = findPerson(temp.getFatherID());
+            }
+            temp = findPerson(mother.getMotherID());
+            while (temp != null) {
+                motherSideFemales.add(temp);
+                temp = findPerson(temp.getMotherID());
+            }
+        }
     }
 
     //for login assignment (easier)
     public Person findPerson(String id) {
-        for (Person p : allPeople) {
+        for (String s : allPeople.keySet()) {
+            Person p = allPeople.get(s);
             if (p.getPersonID().equals(id)) {
                 return p;
             }
@@ -69,19 +102,23 @@ public class DataCache {
         return null;
     }
 
-    public ArrayList<Event> insertEvents(JSONArray events) {
+    public boolean insertEvents(JSONArray events, String personID) {
         Gson g = new Gson();
-        Log.d("RETRIEVAL", "inserting into cache");
         try {
             for (int i = 0; i < events.length(); i++) {
-                Log.d("RETRIEVAL", "loop");
                 Event event = g.fromJson(events.getString(i), Event.class);
-                allEvents.add(event);
+                allEvents.put(event.getEventID(), event);
             }
+            Log.d("EVENTS", String.valueOf(allEvents.size()));
         } catch (JSONException e) {
             e.printStackTrace();
+            return false;
         }
 
+        return true;
+    }
+
+    public Map<String, Event> getAllEvents() {
         return allEvents;
     }
 

@@ -8,15 +8,29 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import Models.Event;
+import Models.Person;
+
 public class MapsFragment extends Fragment {
+
+    private GoogleMap gMap;
+
+    private Map<String, Event> markersData = new HashMap<>();
+    private TextView personDetails;
+    private TextView eventDetails;
 
     private OnMapReadyCallback callback = new OnMapReadyCallback() {
 
@@ -31,11 +45,45 @@ public class MapsFragment extends Fragment {
          */
         @Override
         public void onMapReady(GoogleMap googleMap) {
-            LatLng sydney = new LatLng(-34, 151);
-            googleMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-            googleMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+            gMap=googleMap;
+            setMarkers();
         }
     };
+
+    private void setMarkers() {
+        Map<String, Event> events = DataCache.getInstance().getAllEvents();
+        for (String id : events.keySet()) {
+            Event current = events.get(id);
+            LatLng latLng = new LatLng(current.getLatitude(), current.getLongitude());
+            MarkerOptions mark = new MarkerOptions().position(latLng);
+            String eventType = current.getEventType();
+            switch (eventType) {
+                case "Birth":
+                    mark.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+                    break;
+                case "Marriage":
+                    mark.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
+                    break;
+                case "Death":
+                    mark.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                    break;
+            }
+            gMap.addMarker(mark);
+        }
+    }
+
+    public boolean onMarkerClick(final Marker marker) {
+        Event currentEvent = markersData.get(marker.getId());
+        Person currentPerson = DataCache.getInstance().findPerson(currentEvent.getPersonID());
+        updateEventDetailsView(currentPerson, currentEvent);
+        return false;
+    }
+
+    private void updateEventDetailsView(Person currentPerson, Event currentEvent) {
+        String gender = currentPerson.getGender();
+        personDetails.setText(currentPerson.getFirstName() + " " + currentPerson.getLastName());
+        eventDetails.setText(currentEvent.getEventType() + ": " + currentEvent.getCity() + ", " + currentEvent.getCountry() + " (" + currentEvent.getYear() + ")");
+    }
 
     @Nullable
     @Override

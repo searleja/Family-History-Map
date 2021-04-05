@@ -12,5 +12,6 @@
     <string name="female">Female</string>
     <string name="sign_in">Sign In</string>
     <string name="register">Register</string>
+    <string name="marker_instructions">Click on a marker to see event details</string>
 
 </resources>

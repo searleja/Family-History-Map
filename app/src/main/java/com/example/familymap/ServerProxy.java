@@ -44,9 +44,6 @@ public class ServerProxy {
 
 
 
-            Log.d("TEST", "finished initializing http");
-            Log.d("TEST", url.toString());
-
             http.connect();
 
             String reqData =
@@ -106,8 +103,6 @@ public class ServerProxy {
             http.setRequestMethod("GET");
             http.setDoOutput(true);
             http.setDoInput(true);
-            Log.d("TEST", "finished initializing http");
-            Log.d("TEST", url.toString());
 
             http.connect();
 
@@ -118,7 +113,6 @@ public class ServerProxy {
                             + "\"lastName\": \"" + lastName + "\",\n" + "\"gender\": \"" + gender + "\"\n"
                             + "}";
 
-            Log.d("TEST", reqData);
 
             OutputStream reqBody = http.getOutputStream();
             writeString(reqData, reqBody);
@@ -166,24 +160,17 @@ public class ServerProxy {
 
     }
 
-    public static boolean retrieveData(String serverHost, String serverPort, String authToken) {
-        PersonResult personResult;
+    public static boolean retrievePersons(String serverHost, String serverPort, String authToken, String personID) {
         try {
             URL url = new URL("http://" + serverHost + ":" + serverPort + "/person");
             HttpURLConnection http = (HttpURLConnection)url.openConnection();
             http.setRequestProperty("Authorization", authToken);
             http.setRequestMethod("GET");
             http.setDoInput(true);
-            Log.d("RETRIEVAL", "about to connect");
-            Log.d("RETRIEVAL", url.toString());
 
             http.connect();
-            Log.d("RETRIEVAL", "connected");
-            Log.d("RETRIEVAL", http.getRequestMethod());
-            Log.d("RETRIEVAL", String.valueOf(http.getResponseCode()));
 
             if (http.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                Log.d("RETRIEVAL", "ok");
                 InputStream resBody = http.getInputStream();
 
                 //from lecture
@@ -201,16 +188,13 @@ public class ServerProxy {
                 JSONArray jsonArray = json.getJSONArray("data");
                 Gson g = new Gson();
                 String message = json.optString("message"); //optstring so it doesn't throw an exception
-                Log.d("RETRIEVAL", "before if in server");
                 if (!message.equals("")) {
                     return false;
                 }
                 else {
-                    Log.d("RETRIEVAL", "about to insert into cache");
                     DataCache cache = DataCache.getInstance();
-                    personResult = new PersonResult(cache.insertPeople(jsonArray));
-                    if (personResult.isSuccessful())  return true;
-                    else return false;
+                    boolean res = cache.insertPeople(jsonArray, personID);
+                    return res;
                 }
             }
             else {
@@ -220,25 +204,22 @@ public class ServerProxy {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        return false;
+    }
+    public static boolean retrieveEvents(String serverHost, String serverPort, String authToken, String personID) {
         //events
-        EventResult eventResult;
         try {
             URL url = new URL("http://" + serverHost + ":" + serverPort + "/event");
             HttpURLConnection http = (HttpURLConnection)url.openConnection();
             http.setRequestProperty("Authorization", authToken);
             http.setRequestMethod("GET");
             http.setDoInput(true);
-            Log.d("RETRIEVAL", "about to connect");
-            Log.d("RETRIEVAL", url.toString());
 
             http.connect();
-            Log.d("RETRIEVAL", "connected");
-            Log.d("RETRIEVAL", http.getRequestMethod());
-            Log.d("RETRIEVAL", String.valueOf(http.getResponseCode()));
-
+            Log.d("EVENTS", "before ok");
+            Log.d("EVENTS", String.valueOf(http.getResponseCode()));
             if (http.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                Log.d("RETRIEVAL", "ok");
+                Log.d("EVENTS", "ok");
                 InputStream resBody = http.getInputStream();
 
                 //from lecture
@@ -256,16 +237,15 @@ public class ServerProxy {
                 JSONArray jsonArray = json.getJSONArray("data");
                 Gson g = new Gson();
                 String message = json.optString("message"); //optstring so it doesn't throw an exception
-                Log.d("RETRIEVAL", "before if in server");
                 if (!message.equals("")) {
                     return false;
                 }
                 else {
-                    Log.d("RETRIEVAL", "about to insert into cache");
+                    Log.d("EVENTS", "test");
                     DataCache cache = DataCache.getInstance();
-                    eventResult = new EventResult(cache.insertEvents(jsonArray));
-                    if (eventResult.isSuccessful())  return true;
-                    else return false;
+                    boolean res = cache.insertEvents(jsonArray, personID);
+                    Log.d("EVENTS", String.valueOf(res));
+                    return res;
                 }
             }
             else {
